@@ -8,10 +8,9 @@ ENV DEBIAN_FRONTEND=noninteractive \
 
 RUN dpkg --add-architecture i386 && \
     apt-get update && \
-    apt-get install -y \
-        wget curl xvfb gnupg2 software-properties-common \
+    apt-get install -y wget curl xvfb gnupg2 software-properties-common \
         fonts-wine procps sudo lib32gcc-s1 lib32stdc++6 libc6-i386 \
-        && \
+        cabextract && \
     mkdir -p /etc/apt/keyrings && \
     wget -O /etc/apt/keyrings/winehq.asc https://dl.winehq.org/wine-builds/winehq.key && \
     echo "deb [signed-by=/etc/apt/keyrings/winehq.asc] https://dl.winehq.org/wine-builds/ubuntu/ jammy main" > /etc/apt/sources.list.d/winehq.list && \
@@ -22,19 +21,16 @@ RUN dpkg --add-architecture i386 && \
 RUN wget -O /tmp/steamcmd.tar.gz https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz && \
     mkdir -p /opt/steamcmd && \
     tar -xzf /tmp/steamcmd.tar.gz -C /opt/steamcmd && \
-    rm /tmp/steamcmd.tar.gz && \
-    chmod -R 755 /opt/steamcmd
+    rm /tmp/steamcmd.tar.gz && chmod -R 755 /opt/steamcmd
 
 RUN /opt/steamcmd/steamcmd.sh +quit || true
 
 RUN useradd -m -s /bin/bash -u 1000 ${STEAMCMD_USER} && \
-    echo "${STEAMCMD_USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+    echo "${STEAMCMD_USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
+    chown -R ${STEAMCMD_USER}:${STEAMCMD_USER} /home/${STEAMCMD_USER}
 
-RUN chown -R ${STEAMCMD_USER}:${STEAMCMD_USER} /home/${STEAMCMD_USER}
 RUN chown -R ${STEAMCMD_USER}:${STEAMCMD_USER} /opt/steamcmd
-
-RUN mkdir -p ${SCUM_SERVER_DIR} && \
-    chown -R ${STEAMCMD_USER}:${STEAMCMD_USER} ${SCUM_SERVER_DIR}
+RUN mkdir -p ${SCUM_SERVER_DIR} && chown -R ${STEAMCMD_USER}:${STEAMCMD_USER} ${SCUM_SERVER_DIR}
 
 USER ${STEAMCMD_USER}
 WORKDIR ${SCUM_SERVER_DIR}
