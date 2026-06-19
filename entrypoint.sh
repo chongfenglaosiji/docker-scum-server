@@ -3,15 +3,6 @@ set -e
 
 export HOME=/home/steam
 
-Xvfb :99 -screen 0 1024x768x24 &>/dev/null &
-sleep 1
-export DISPLAY=:99
-
-mkdir -p /home/steam/.local/share/Steam
-mkdir -p /home/steam/.steam
-ln -sf /home/steam/.local/share/Steam /home/steam/.steam/root
-ln -sf /home/steam/.local/share/Steam /home/steam/.steam/steam
-
 update_scum() {
     local retry=0
     while [ $retry -lt 5 ]; do
@@ -27,10 +18,9 @@ update_scum() {
     done
     return 1
 }
+
 update_scum || exit 1
 
-echo "✅ 服务端已就绪"
-echo "📌 手动启动命令:"
-echo "   wine /scum-server/SCUM/Binaries/Win64/SCUMServer.exe -log -port=7777 -queryport=27015 -nobattleye"
-
-sleep infinity
+echo "🚀 启动 SCUM 服务器..."
+exec wine /scum-server/SCUM/Binaries/Win64/SCUMServer.exe \
+    -log -port=7777 -queryport=27015 -nobattleye

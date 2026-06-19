@@ -1,20 +1,53 @@
+<!-- Language Toggle -->
+<input type="radio" id="lang-zh" name="lang" checked hidden>
+<input type="radio" id="lang-en" name="lang" hidden>
+<style>
+  #lang-zh:checked ~ .zh { display: block; }
+  #lang-zh:checked ~ .en { display: none; }
+  #lang-en:checked ~ .zh { display: none; }
+  #lang-en:checked ~ .en { display: block; }
+  .lang-btn {
+    cursor: pointer;
+    display: inline-block;
+    padding: 6px 16px;
+    margin: 4px;
+    border: 1px solid #0366d6;
+    border-radius: 4px;
+    color: #0366d6;
+    background: #fff;
+    font-size: 14px;
+    user-select: none;
+  }
+  .lang-btn:hover { background: #0366d6; color: #fff; }
+  #lang-zh:checked ~ .lang-bar label[for="lang-zh"] { background: #0366d6; color: #fff; }
+  #lang-en:checked ~ .lang-bar label[for="lang-en"] { background: #0366d6; color: #fff; }
+</style>
+
+<div class="lang-bar">
+  <label class="lang-btn" for="lang-zh">中文</label>
+  <label class="lang-btn" for="lang-en">English</label>
+</div>
+
+<!-- 中文内容 -->
+<div class="zh">
+
 # Docker SCUM Server
 
-将 SCUM 专用服务器打包为 Docker 镜像，基于 SteamCMD + Wine 运行。
+基于 `scottyhardy/docker-wine` + SteamCMD 构建的 **[SCUM](https://store.steampowered.com/app/513710/SCUM/)** 专用服务器 Docker 镜像。
 
-Dockerized SCUM dedicated server using SteamCMD + Wine.
+## 概述
 
----
+通过 Wine 兼容层在 Linux Docker 容器中运行 SCUM 游戏服务器。服务器文件通过 SteamCMD 自动下载并更新。
 
-## 快速开始 Quick Start
+## 快速开始
 
-### 1. 构建镜像 Build
+### 构建镜像
 
 ```bash
 docker build -t scum-server .
 ```
 
-### 2. 启动容器 Run
+### 启动容器
 
 ```bash
 docker run -d \
@@ -26,138 +59,151 @@ docker run -d \
   scum-server
 ```
 
-启动后服务端文件会自动下载到 `/opt/scum`，配置文件在首次运行后生成，可直接在宿主机上编辑。
+首次启动会自动通过 SteamCMD 下载 SCUM 服务端文件（约 18GB），完成后自动启动服务器。
 
-On first run, server files are downloaded to `/opt/scum`. Config files are generated automatically — edit them directly on the host.
-
----
-
-## 如何使用 Usage
-
-### 查看日志 View Logs
+### 查看日志
 
 ```bash
 docker logs -f scum
 ```
 
-首次启动可以看到 SteamCMD 下载进度和服务器启动输出。
-
-Watch SteamCMD download progress and server startup output.
-
-### 停止 / 启动 Stop & Start
+### 管理服务器
 
 ```bash
-docker stop scum
-docker start scum
+docker stop scum      # 停止
+docker start scum     # 启动（每次启动自动检查更新）
+docker restart scum   # 重启
 ```
 
-每次启动都会自动检查并更新 SCUM 服务器。
+## 端口说明
 
-Each start triggers an automatic update check.
+| 端口 | 协议 | 用途 |
+|------|------|------|
+| 7777 | UDP  | 游戏主端口 |
+| 7778 | UDP  | 预留 |
+| 7779 | UDP/TCP | Steam 联机 |
+| 27015| UDP  | 查询端口 |
 
-### 更新 Update
+## 数据持久化
+
+服务端文件和配置文件通过卷挂载持久化到宿主机：
 
 ```bash
+-v /opt/scum:/scum-server
+```
+
+配置目录：`/opt/scum/SCUM/Saved/Config/WindowsServer/`
+
+## 配置修改
+
+首次启动后会生成默认配置文件，编辑后重启容器生效：
+
+```bash
+vim /opt/scum/SCUM/Saved/Config/WindowsServer/ServerSettings.ini
 docker restart scum
 ```
 
-重启即触发更新，entrypoint 会自动检测并下载最新版。
+## 技术栈
 
-Restart triggers update — entrypoint fetches the latest version automatically.
+- **基础镜像**: [scottyhardy/docker-wine](https://github.com/scottyhardy/docker-wine) (WineHQ + winbind + Xvfb)
+- **Wine 版本**: WineHQ Stable (9.0+)
+- **SteamCMD**: 官方 Steam 命令行客户端
+- **SCUM App ID**: 3792580
 
-### 进入容器 Shell Access
+## 注意事项
+
+- 首次启动由于需要下载约 18GB 游戏文件，预计耗时 30-60 分钟
+- 镜像基于 Wine 转译运行 Windows 程序，CPU 和内存开销略高于原生
+- 建议至少分配 4GB 内存和 4 核 CPU
+
+</div>
+
+<!-- English Content -->
+<div class="en">
+
+# Docker SCUM Server
+
+A Dockerized **[SCUM](https://store.steampowered.com/app/513710/SCUM/)** dedicated server built on `scottyhardy/docker-wine` + SteamCMD.
+
+## Overview
+
+Runs the SCUM game server inside a Linux Docker container via the Wine compatibility layer. Server files are automatically downloaded and updated through SteamCMD.
+
+## Quick Start
+
+### Build
 
 ```bash
-docker exec -it scum bash
+docker build -t scum-server .
 ```
 
-### 修改配置 Edit Config
-
-容器启动后，在挂载目录下生成配置文件：
-
-After first run, config files appear under the mounted volume:
-
-```
-/opt/scum/
-├── SCUMServer.exe
-├── ServerSettings.ini       ← 服务器设置 Server settings
-├── Game.ini                 ← 游戏规则 Game rules
-├── ...
-```
-
-在宿主机上直接编辑，重启生效：
-
-Edit on the host, then restart:
+### Run
 
 ```bash
-vim /opt/scum/ServerSettings.ini
+docker run -d \
+  -p 7777-7779:7777-7779/udp \
+  -p 7779:7779/tcp \
+  -p 27015:27015/udp \
+  -v /opt/scum:/scum-server \
+  --name scum \
+  scum-server
+```
+
+On first run, SteamCMD downloads the SCUM server files (~18GB). The server starts automatically once complete.
+
+### View Logs
+
+```bash
+docker logs -f scum
+```
+
+### Server Management
+
+```bash
+docker stop scum      # Stop
+docker start scum     # Start (auto-updates on each start)
+docker restart scum   # Restart
+```
+
+## Ports
+
+| Port | Protocol | Purpose |
+|------|----------|---------|
+| 7777 | UDP      | Game port |
+| 7778 | UDP      | Reserved |
+| 7779 | UDP/TCP  | Steam networking |
+| 27015| UDP      | Query port |
+
+## Data Persistence
+
+Server files and configs are persisted on the host via a mounted volume:
+
+```bash
+-v /opt/scum:/scum-server
+```
+
+Config directory: `/opt/scum/SCUM/Saved/Config/WindowsServer/`
+
+## Configuration
+
+Default config files are generated on first run. Edit them on the host and restart to apply:
+
+```bash
+vim /opt/scum/SCUM/Saved/Config/WindowsServer/ServerSettings.ini
 docker restart scum
 ```
 
-### Docker Compose 管理
+## Tech Stack
 
-创建 `docker-compose.yml`：
+- **Base Image**: [scottyhardy/docker-wine](https://github.com/scottyhardy/docker-wine) (WineHQ + winbind + Xvfb)
+- **Wine**: WineHQ Stable (9.0+)
+- **SteamCMD**: Official Steam console client
+- **SCUM App ID**: 3792580
 
-```yaml
-version: "3"
-services:
-  scum:
-    image: scum-server
-    container_name: scum
-    restart: unless-stopped
-    ports:
-      - "7777-7779:7777-7779/udp"
-      - "7779:7779/tcp"
-      - "27015:27015/udp"
-    volumes:
-      - /opt/scum:/scum-server
-```
+## Notes
 
-```bash
-docker-compose up -d
-```
+- First start requires downloading ~18GB of game files (30-60 min expected)
+- Wine translation layer adds some CPU/memory overhead vs native
+- Recommended minimum: 4GB RAM, 4 CPU cores
 
----
-
-## 端口说明 Ports
-
-| 端口 Port | 协议 Protocol | 用途 Purpose |
-|-----------|---------------|--------------|
-| 7777      | UDP           | 游戏主端口 Game port |
-| 7778      | UDP           | 预留 Reserved |
-| 7779      | UDP / TCP     | Steam 联机 Steam networking |
-| 27015     | UDP           | 查询端口 Query port |
-
-## 数据卷 Volumes
-
-| 路径 Path | 说明 Description |
-|-----------|------------------|
-| `/scum-server` | SCUM 服务端安装目录（游戏文件 + 配置） Server installation & configs |
-
----
-
-## 工作原理 How It Works
-
-1. **SteamCMD** 匿名登录，下载或更新 `SCUMServer.exe`（App ID `3792580`）  
-   SteamCMD logs in anonymously and downloads / updates SCUMServer.exe.
-2. 安装后检查可执行文件，失败则重试最多 **5 次**  
-   Retries up to **5 times** if the executable is not found.
-3. 通过 `xvfb-run` + `wine` 启动，绑定 `7777` / `27015`  
-   Launches via xvfb-run + wine, bound to ports 7777 / 27015.
-
-## Dockerfile 结构 Dockerfile Structure
-
-| 阶段 Layer | 说明 Description |
-|------------|------------------|
-| `FROM ubuntu:22.04` | 基础镜像 Base image |
-| 安装依赖 Dependencies | wine、xvfb、32位库 wine, xvfb, i386 libs |
-| SteamCMD | 下载安装 Download & install |
-| 用户创建 User setup | 非 root 运行 Non-root user |
-| 入口 Entrypoint | entrypoint.sh，自动更新+启动 Auto-update & launch |
-
-## 注意事项 Notes
-
-- SteamCMD 需要 32 位库（`i386`），构建时已预装  
-  32-bit libraries (i386) are pre-installed for SteamCMD.
-- 如需交互控制台，去掉 `-d` 并加上 `-it`  
-  For console interaction, omit `-d` and add `-it`.
+</div>
