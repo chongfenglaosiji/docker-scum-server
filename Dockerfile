@@ -9,9 +9,14 @@ ENV DEBIAN_FRONTEND=noninteractive \
 RUN dpkg --add-architecture i386 && \
     apt-get update && \
     apt-get install -y \
-        wget curl xvfb wine wine32 wine64 libwine libwine:i386 \
+        wget curl xvfb gnupg2 software-properties-common \
         fonts-wine procps sudo lib32gcc-s1 lib32stdc++6 libc6-i386 \
         && \
+    mkdir -p /etc/apt/keyrings && \
+    wget -O /etc/apt/keyrings/winehq.asc https://dl.winehq.org/wine-builds/winehq.key && \
+    echo "deb [signed-by=/etc/apt/keyrings/winehq.asc] https://dl.winehq.org/wine-builds/ubuntu/ jammy main" > /etc/apt/sources.list.d/winehq.list && \
+    apt-get update && \
+    apt-get install -y --install-recommends winehq-stable && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN wget -O /tmp/steamcmd.tar.gz https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz && \
